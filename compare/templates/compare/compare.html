@@ -1,0 +1,107 @@
+{% extends "compare/base.html" %}
+{% load humanize %}
+{% block title %}{{ item_a.name }} vs {{ item_b.name }} — {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}{{ item_a.name }} vs {{ item_b.name }}: full spec comparison to help you decide.{% endblock %}
+{% block content %}
+
+{% if overall_winner %}
+<div class="verdict-banner">
+  <i class="bi bi-trophy-fill"></i>
+  <strong>{{ overall_winner.name }}</strong> wins overall — {{ overall_score }} on specs compared
+</div>
+{% elif rows %}
+<div class="verdict-banner draw">
+  <i class="bi bi-slash-circle"></i> It's a tie — {{ overall_score }} on specs compared
+</div>
+{% endif %}
+
+<div class="duel-head">
+  <div class="contender a">
+    {% if item_a.score %}<div class="score-badge">{{ item_a.score }}</div>{% endif %}
+    {% if item_a.image_url %}
+      <img src="{{ item_a.image_url }}" alt="{{ item_a.name }}" onerror="this.style.display='none'">
+    {% elif item_a.logo_url %}
+      <div class="logo-card"><img src="{{ item_a.logo_url }}" alt="{{ item_a.name }}" onerror="this.parentElement.style.display='none'"></div>
+    {% else %}
+      <div class="avatar-fallback small" style="height:140px;">{{ item_a.initials }}</div>
+    {% endif %}
+    {% if item_a.logo_url and item_a.image_url %}<img class="brand-logo" src="{{ item_a.logo_url }}" alt="" onerror="this.style.display='none'">{% endif %}
+    <h2>{{ item_a.name }}</h2>
+    {% if item_a.price %}<div class="price-tag">₦{{ item_a.price|floatformat:0|intcomma }}</div>{% endif %}
+    <a href="{{ item_a.get_absolute_url }}" style="color: var(--muted); font-size: 13px;">Full details →</a>
+  </div>
+  <div class="vs-coin-mid">VS</div>
+  <div class="contender b">
+    {% if item_b.score %}<div class="score-badge">{{ item_b.score }}</div>{% endif %}
+    {% if item_b.image_url %}
+      <img src="{{ item_b.image_url }}" alt="{{ item_b.name }}" onerror="this.style.display='none'">
+    {% elif item_b.logo_url %}
+      <div class="logo-card"><img src="{{ item_b.logo_url }}" alt="{{ item_b.name }}" onerror="this.parentElement.style.display='none'"></div>
+    {% else %}
+      <div class="avatar-fallback small" style="height:140px;">{{ item_b.initials }}</div>
+    {% endif %}
+    {% if item_b.logo_url and item_b.image_url %}<img class="brand-logo" src="{{ item_b.logo_url }}" alt="" onerror="this.style.display='none'">{% endif %}
+    <h2>{{ item_b.name }}</h2>
+    {% if item_b.price %}<div class="price-tag">₦{{ item_b.price|floatformat:0|intcomma }}</div>{% endif %}
+    <a href="{{ item_b.get_absolute_url }}" style="color: var(--muted); font-size: 13px;">Full details →</a>
+  </div>
+</div>
+
+<div class="vote-block">
+  <div class="vote-bar"><div class="vote-fill" style="width:{{ percent_a }}%;"></div></div>
+  <div class="vote-labels">
+    <span>{{ percent_a }}% pick {{ item_a.name }}</span>
+    <span>{{ percent_b }}% pick {{ item_b.name }}</span>
+  </div>
+  <div class="vote-buttons">
+    <form method="post" action="{% url 'vote' category.slug item_a.slug item_b.slug 'a' %}">{% csrf_token %}<button class="btn outline" type="submit">Vote {{ item_a.name }}</button></form>
+    <form method="post" action="{% url 'vote' category.slug item_a.slug item_b.slug 'b' %}">{% csrf_token %}<button class="btn outline" type="submit">Vote {{ item_b.name }}</button></form>
+  </div>
+</div>
+
+{% if rows %}
+<table class="spec-table">
+  <thead>
+    <tr><th class="spec-name">Spec</th><th>{{ item_a.name }}</th><th>{{ item_b.name }}</th></tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td class="spec-name">{{ row.spec.name }}{% if row.spec.unit %} ({{ row.spec.unit }}){% endif %}</td>
+      <td class="{% if row.winner == 'a' %}winner{% endif %}">{{ row.a.value_text|default:"—" }}</td>
+      <td class="{% if row.winner == 'b' %}winner{% endif %}">{{ row.b.value_text|default:"—" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color: var(--muted); margin-top: 20px;">No specs have been added for this category yet — add them from the Django admin to power the comparison table.</p>
+{% endif %}
+
+{% if item_a.pros_list or item_b.pros_list %}
+<div class="pros-cons two-up">
+  <div class="pros">
+    <h4>{{ item_a.name }}</h4>
+    <ul>{% for p in item_a.pros_list %}<li class="good">{{ p }}</li>{% endfor %}{% for c in item_a.cons_list %}<li class="bad">{{ c }}</li>{% endfor %}</ul>
+  </div>
+  <div class="cons">
+    <h4>{{ item_b.name }}</h4>
+    <ul>{% for p in item_b.pros_list %}<li class="good">{{ p }}</li>{% endfor %}{% for c in item_b.cons_list %}<li class="bad">{{ c }}</li>{% endfor %}</ul>
+  </div>
+</div>
+{% endif %}
+
+{% if other_items %}
+<section class="section">
+  <div class="section-head"><h2>Try a different matchup</h2></div>
+  <div class="grid">
+    {% for other in other_items %}
+      <a href="{% url 'pick_comparison' category.slug %}?a={{ item_a.pk }}&b={{ other.pk }}" class="card">
+        <h3>{{ item_a.name }} <span style="color:var(--side-b);">vs</span> {{ other.name }}</h3>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}

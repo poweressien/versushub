@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ SITE_NAME }} — Compare anything, decide fast{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Side-by-side comparisons of cars, phones, foods and more, so you can decide fast.{% endblock %}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{% static 'compare/css/style.css' %}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>">
+
+  {% if ADSENSE_ENABLED %}
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ ADSENSE_CLIENT_ID }}" crossorigin="anonymous"></script>
+  {% endif %}
+</head>
+<body>
+  <div class="container">
+    <nav class="nav">
+      <a href="{% url 'home' %}" class="logo"><span class="vs-mark">VS</span>{{ SITE_NAME }}</a>
+      <div class="nav-links">
+        <div class="dropdown">
+          <span class="dropdown-toggle">Categories <i class="bi bi-chevron-down" style="font-size:11px;"></i></span>
+          <div class="dropdown-menu">
+            {% for cat in nav_categories %}
+              <a href="{{ cat.get_absolute_url }}">{% if cat.icon %}<i class="bi {{ cat.icon }}"></i>{% endif %} {{ cat.name }}</a>
+            {% endfor %}
+          </div>
+        </div>
+        <form action="{% url 'search' %}" method="get">
+          <input type="text" name="q" placeholder="Search cars, phones, foods…" value="{{ query|default:'' }}">
+          <button type="submit"><i class="bi bi-search"></i></button>
+        </form>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    {% if messages %}
+      {% for message in messages %}
+        <p style="color: var(--gold);">{{ message }}</p>
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+
+    <!-- Ad slot: leave this in place. It only renders live ads once
+         ADSENSE_ENABLED = True and you fill in your real client/slot IDs. -->
+    <div class="ad-slot">
+      {% if ADSENSE_ENABLED %}
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="{{ ADSENSE_CLIENT_ID }}"
+             data-ad-slot="0000000000"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      {% else %}
+        Ad space — connect AdSense in settings.py once approved
+      {% endif %}
+    </div>
+  </div>
+
+  <footer>
+    <div class="container">
+      &copy; {{ SITE_NAME }} — built to help people decide, one duel at a time.
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,72 @@
+{% extends "compare/base.html" %}
+{% block content %}
+
+<section class="hero">
+  <div class="coin">VS</div>
+  <h1>Two choices. One clear winner.</h1>
+  <p>Pick any two cars, phones, foods, or companies. See the specs side by side, and know which one actually wins — before you spend your money.</p>
+  <div class="stat-strip">
+    <div><strong>{{ stats.items }}</strong> items</div>
+    <div><strong>{{ stats.categories }}</strong> categories</div>
+    <div><strong>{{ stats.comparisons }}</strong> duels compared</div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head"><h2>Browse a category</h2></div>
+  <div class="grid">
+    {% for category in categories %}
+      <a href="{{ category.get_absolute_url }}" class="card">
+        {% if category.icon %}<i class="bi {{ category.icon }}" style="font-size: 26px; color: var(--gold);"></i>{% endif %}
+        <div class="eyebrow">{{ category.items.count }} items</div>
+        <h3>{{ category.name }}</h3>
+      </a>
+    {% empty %}
+      <p style="color: var(--muted);">No categories yet — add some from the Django admin.</p>
+    {% endfor %}
+  </div>
+</section>
+
+{% if popular_comparisons %}
+<section class="section">
+  <div class="section-head"><h2>Popular duels right now</h2></div>
+  <div class="grid">
+    {% for c in popular_comparisons %}
+      <a href="{{ c.get_absolute_url }}" class="card">
+        <div class="eyebrow">{{ c.category.name }} · {{ c.views }} view{{ c.views|pluralize }}</div>
+        <h3>{{ c.item_a.name }} <span style="color:var(--side-b);">vs</span> {{ c.item_b.name }}</h3>
+        {% if c.total_votes %}
+        <div class="mini-vote-bar"><div class="mini-vote-fill" style="width:{{ c.percent_a }}%;"></div></div>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if latest_items %}
+<section class="section">
+  <div class="section-head"><h2>Recently added</h2></div>
+  <div class="grid">
+    {% for item in latest_items %}
+      <a href="{{ item.get_absolute_url }}" class="card">
+        {% if item.score %}<div class="score-badge">{{ item.score }}</div>{% endif %}
+        {% if item.image_url %}
+          <img class="item-thumb" src="{{ item.image_url }}" alt="{{ item.name }}" onerror="this.style.display='none'">
+        {% elif item.logo_url %}
+          <div class="logo-card"><img src="{{ item.logo_url }}" alt="{{ item.name }}" onerror="this.parentElement.style.display='none'"></div>
+        {% else %}
+          <div class="avatar-fallback">{{ item.initials }}</div>
+        {% endif %}
+        <div class="eyebrow-row">
+          {% if item.logo_url and item.image_url %}<img class="brand-logo" src="{{ item.logo_url }}" alt="" onerror="this.style.display='none'">{% endif %}
+          <span class="eyebrow">{{ item.category.name }}{% if item.brand %} · {{ item.brand }}{% endif %}</span>
+        </div>
+        <h3>{{ item.name }}</h3>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}

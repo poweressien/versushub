@@ -1,0 +1,96 @@
+{% extends "compare/base.html" %}
+{% load humanize %}
+{% block title %}{{ item.name }} — {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}{{ item.summary }}{% endblock %}
+{% block content %}
+
+<section class="section">
+  <div class="eyebrow-row" style="color: var(--muted);">
+    <a href="{{ item.category.get_absolute_url }}">{{ item.category.name }}</a>
+    {% if item.brand %}<span>· {{ item.brand }}</span>{% endif %}
+  </div>
+  <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+    <h1 style="margin-bottom:0;">{{ item.name }}</h1>
+    {% if item.logo_url and item.image_url %}<img class="brand-logo" style="height:28px;" src="{{ item.logo_url }}" alt="" onerror="this.style.display='none'">{% endif %}
+    {% if item.score %}<div class="score-badge" style="position:static;">{{ item.score }}</div>{% endif %}
+  </div>
+  {% if item.image_url %}
+    <img class="item-thumb" style="height: 260px;" src="{{ item.image_url }}" alt="{{ item.name }}" onerror="this.style.display='none'">
+    {% if item.photo_credit %}<div style="font-size:12px; color:var(--muted); margin-top:-6px; margin-bottom:10px;">{{ item.photo_credit }}</div>{% endif %}
+  {% elif item.logo_url %}
+    <div class="logo-card large"><img src="{{ item.logo_url }}" alt="{{ item.name }}" onerror="this.parentElement.style.display='none'"></div>
+  {% else %}
+    <div class="avatar-fallback" style="height: 260px; font-size: 48px;">{{ item.initials }}</div>
+  {% endif %}
+  {% if item.price %}<p class="price-tag" style="font-size:20px;">₦{{ item.price|floatformat:0|intcomma }}</p>{% endif %}
+  <p>{{ item.description|default:item.summary }}</p>
+
+  {% if item.review_count %}
+    <p style="color: var(--muted);">{{ item.average_rating|floatformat:1 }} / 5 from {{ item.review_count }} review{{ item.review_count|pluralize }}</p>
+  {% endif %}
+
+  {% if item.pros_list or item.cons_list %}
+  <div class="pros-cons">
+    {% if item.pros_list %}
+    <div class="pros">
+      <h4><i class="bi bi-check-circle-fill"></i> Pros</h4>
+      <ul>{% for p in item.pros_list %}<li>{{ p }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+    {% if item.cons_list %}
+    <div class="cons">
+      <h4><i class="bi bi-x-circle-fill"></i> Cons</h4>
+      <ul>{% for c in item.cons_list %}<li>{{ c }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if spec_values %}
+  <h4 style="margin-top:28px;">Full specs</h4>
+  <table class="spec-table">
+    {% for sv in spec_values %}
+    <tr>
+      <td class="spec-name">{{ sv.spec.name }}{% if sv.spec.unit %} ({{ sv.spec.unit }}){% endif %}</td>
+      <td>{{ sv.value_text }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+</section>
+
+{% if other_items %}
+<section class="section">
+  <div class="section-head"><h2>Compare {{ item.name }} against…</h2></div>
+  <div class="grid">
+    {% for other in other_items %}
+      <a href="{% url 'pick_comparison' item.category.slug %}?a={{ item.pk }}&b={{ other.pk }}" class="card">
+        {% if other.score %}<div class="score-badge">{{ other.score }}</div>{% endif %}
+        {% if other.image_url %}
+          <img class="item-thumb" src="{{ other.image_url }}" alt="{{ other.name }}" onerror="this.style.display='none'">
+        {% elif other.logo_url %}
+          <div class="logo-card"><img src="{{ other.logo_url }}" alt="{{ other.name }}" onerror="this.parentElement.style.display='none'"></div>
+        {% else %}
+          <div class="avatar-fallback">{{ other.initials }}</div>
+        {% endif %}
+        <h3>{{ other.name }}</h3>
+        <div class="eyebrow">vs {{ item.name }}</div>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="section">
+  <div class="section-head"><h2>Reviews</h2></div>
+  {% for review in reviews %}
+    <div class="review">
+      <strong>{{ review.name }}</strong> <span class="stars">{{ review.rating }}/5</span>
+      <p>{{ review.comment }}</p>
+    </div>
+  {% empty %}
+    <p style="color: var(--muted);">No reviews yet.</p>
+  {% endfor %}
+</section>
+
+{% endblock %}

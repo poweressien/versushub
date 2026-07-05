@@ -1,0 +1,142 @@
+{% extends "compare/base.html" %}
+{% load humanize %}
+{% block title %}{{ category.name }} comparisons — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+
+<section class="section">
+  <div class="section-head">
+    <h2>{% if category.icon %}<i class="bi {{ category.icon }}" style="color: var(--gold);"></i> {% endif %}{{ category.name }}</h2>
+  </div>
+  {% if category.description %}<p style="color: var(--muted);">{{ category.description }}</p>{% endif %}
+
+  <div class="category-layout">
+    <aside class="filter-sidebar">
+      <form method="get">
+        <h4>Sort by</h4>
+        <select name="sort" onchange="this.form.submit()">
+          <option value="score" {% if sort == "score" %}selected{% endif %}>Highest score</option>
+          <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>Price: low to high</option>
+          <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>Price: high to low</option>
+          <option value="name" {% if sort == "name" %}selected{% endif %}>Name (A-Z)</option>
+        </select>
+
+        {% if all_brands %}
+        <h4 style="margin-top:20px;">Filter</h4>
+        {% for brand in all_brands %}
+          <label class="filter-check">
+            <input type="checkbox" name="brand" value="{{ brand }}" onchange="this.form.submit()" {% if brand in selected_brands %}checked{% endif %}>
+            {{ brand }}
+          </label>
+        {% endfor %}
+        {% if selected_brands %}<a href="{% url 'category_detail' category.slug %}" style="font-size:13px; color:var(--gold); display:inline-block; margin-top:8px;">Clear filters</a>{% endif %}
+        {% endif %}
+      </form>
+    </aside>
+
+    <div class="category-main">
+      {% if items|length >= 2 %}
+      <form class="picker-form" method="post" action="{% url 'pick_comparison' category.slug %}">
+        {% csrf_token %}
+        <select name="item_a" required>
+          <option value="">Choose the first…</option>
+          {% for item in items %}<option value="{{ item.pk }}">{{ item.name }}</option>{% endfor %}
+        </select>
+        <span class="versus-x">VS</span>
+        <select name="item_b" required>
+          <option value="">Choose the second…</option>
+          {% for item in items %}<option value="{{ item.pk }}">{{ item.name }}</option>{% endfor %}
+        </select>
+        <button class="btn" type="submit">Compare</button>
+      </form>
+      {% endif %}
+
+      <div class="grid dense">
+        {% for row in items_with_specs %}
+          {% with item=row.item %}
+          <div class="card compare-pickable" data-id="{{ item.pk }}" data-name="{{ item.name }}">
+            {% if item.score %}<div class="score-badge">{{ item.score }}</div>{% endif %}
+            <label class="pick-check">
+              <input type="checkbox" class="pick-input" value="{{ item.pk }}" data-name="{{ item.name }}">
+              <span></span>
+            </label>
+            <a href="{{ item.get_absolute_url }}">
+              {% if item.image_url %}
+                <img class="item-thumb" src="{{ item.image_url }}" alt="{{ item.name }}" onerror="this.style.display='none'">
+              {% elif item.logo_url %}
+                <div class="logo-card"><img src="{{ item.logo_url }}" alt="{{ item.name }}" onerror="this.parentElement.style.display='none'"></div>
+              {% else %}
+                <div class="avatar-fallback">{{ item.initials }}</div>
+              {% endif %}
+              <div class="eyebrow-row">
+                {% if item.logo_url and item.image_url %}<img class="brand-logo" src="{{ item.logo_url }}" alt="" onerror="this.style.display='none'">{% endif %}
+                <span class="eyebrow">{{ item.brand }}</span>
+              </div>
+              <h3>{{ item.name }}</h3>
+              {% if item.price %}<div class="price-tag">₦{{ item.price|floatformat:0|intcomma }}</div>{% endif %}
+              {% if row.top_specs %}
+              <ul class="mini-specs">
+                {% for sv in row.top_specs %}
+                  <li>{{ sv.spec.name }}: <strong>{{ sv.value_text }}</strong></li>
+                {% endfor %}
+              </ul>
+              {% endif %}
+            </a>
+          </div>
+          {% endwith %}
+        {% empty %}
+          <p style="color: var(--muted);">No items match these filters yet — try clearing a filter, or add more from the Django admin.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="compare-tray" id="compareTray">
+  <span id="trayLabel">Pick 2 to compare</span>
+  <button class="btn" id="trayButton" disabled>Compare</button>
+</div>
+
+<script>
+(function () {
+  var checked = [];
+  var tray = document.getElementById('compareTray');
+  var label = document.getElementById('trayLabel');
+  var button = document.getElementById('trayButton');
+  var boxes = document.querySelectorAll('.pick-input');
+
+  function render() {
+    tray.classList.toggle('show', checked.length > 0);
+    if (checked.length === 0) {
+      label.textContent = 'Pick 2 to compare';
+    } else if (checked.length === 1) {
+      label.textContent = checked[0].name + ' — pick 1 more';
+    } else {
+      label.textContent = checked[0].name + ' vs ' + checked[1].name;
+    }
+    button.disabled = checked.length !== 2;
+  }
+
+  boxes.forEach(function (box) {
+    box.addEventListener('change', function () {
+      if (box.checked) {
+        if (checked.length >= 2) {
+          var removed = checked.shift();
+          boxes.forEach(function (b) { if (b.value === removed.id) b.checked = false; });
+        }
+        checked.push({ id: box.value, name: box.dataset.name });
+      } else {
+        checked = checked.filter(function (c) { return c.id !== box.value; });
+      }
+      render();
+    });
+  });
+
+  button.addEventListener('click', function () {
+    if (checked.length === 2) {
+      window.location.href = "{% url 'pick_comparison' category.slug %}?a=" + checked[0].id + "&b=" + checked[1].id;
+    }
+  });
+})();
+</script>
+
+{% endblock %}
