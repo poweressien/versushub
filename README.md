@@ -107,8 +107,6 @@ Other legitimate photo sources worth knowing about:
   affiliate, this grants explicit image-usage rights for exactly this kind
   of use case.
 
-
-
 ## Data accuracy — what's real, what's a placeholder
 
 - **Cars, Smartphones, Foods, Electronics specs** — plausible, representative
@@ -149,14 +147,88 @@ Everything is managed from `/admin/`, no code needed:
    ```
 3. Every page already has an `.ad-slot` div wired to render AdSense once enabled.
 
-## Before deploying live
+## Push to GitHub
 
-- Set `DEBUG = False`, set `ALLOWED_HOSTS` to your real domain, change `SECRET_KEY`.
-- Swap SQLite for Postgres if you expect real traffic.
-- Run `python manage.py collectstatic` and serve `/static/` via your host or a CDN.
-- Common free/cheap hosts that work well with Django: Railway, Render, PythonAnywhere.
-- Re-check every placeholder called out above (logos, financials, football
-  stats, rankings) before it's public.
+Needed before deploying to Render (or anywhere else that deploys from a repo):
+
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/YOUR-USERNAME/YOUR-REPO-NAME.git
+git push -u origin main
+```
+
+Create the empty repo on GitHub first if you haven't (github.com/new — skip
+the README/gitignore options there, this project already has both). If
+GitHub rejects your password on push, it no longer accepts account
+passwords over the command line — generate a Personal Access Token instead
+(GitHub → Settings → Developer settings → Personal access tokens) and use
+that as the password when prompted.
+
+## Deploying — why not Vercel, and what to use instead
+
+**Vercel won't work for this project as-is**, and it's not a quick fix: Vercel
+runs your app in disposable serverless functions with no persistent disk.
+SQLite is a file that needs to actually live somewhere between requests —
+Vercel can't give it that, so you'll always hit `OperationalError: unable to
+open database file` there. Vercel is built for frontend frameworks (Next.js
+etc.) and stateless API routes, not stateful Django apps with a database.
+
+**Use Render instead** (as of mid-2026: genuine free tier, 750 hrs/month +
+a free Postgres that expires after 30-90 days — plenty to launch and test
+on, budget for a paid Postgres before that expires if this becomes your
+real site). Railway also works but dropped its free tier back in 2023 —
+now $5-20/month from the start.
+
+The codebase is already set up for this — `render.yaml`, `Procfile`,
+`gunicorn`, `whitenoise` for static files, and `dj-database-url` to read
+whichever database Render gives you are all already in place, and none of
+it changes how you run things locally.
+
+### Deploy to Render
+
+1. Push this project to GitHub first (see the git steps below) if you haven't already.
+2. Go to [dashboard.render.com](https://dashboard.render.com) → **New** → **Blueprint**.
+3. Connect your GitHub repo. Render reads `render.yaml` and sets up both the
+   web service and a free Postgres database automatically — you shouldn't
+   need to type in a `DATABASE_URL` yourself, Render wires that up for you.
+4. Click **Apply**. First deploy takes a few minutes (installing
+   dependencies, running migrations, collecting static files).
+5. Once it's live, run the seed command and create your admin login **from
+   your local machine, pointed at the live database**:
+   ```bash
+   # Get the "External Database URL" from the Render Postgres dashboard, then:
+   DATABASE_URL="<paste the External Database URL here>" python manage.py createsuperuser
+   DATABASE_URL="<same URL>" python manage.py seed_demo
+   ```
+   (Render's free web service doesn't give you a persistent shell, so this
+   local-pointed-at-remote approach is the simplest way to run one-off commands.)
+6. Visit `https://your-app-name.onrender.com`.
+
+**Free tier heads up:** the free web service spins down after 15 minutes of
+inactivity — the first visitor after that waits ~10-30 seconds for it to
+wake back up. Fine for testing, worth upgrading before you're pushing real
+AdSense traffic (cold starts hurt bounce rate).
+
+**No manual dashboard option:** if you'd rather not use the Blueprint, you
+can create the Web Service and PostgreSQL database separately in Render's
+dashboard — same build command (`pip install -r requirements.txt`) and
+start command (from `Procfile`), just set `DATABASE_URL` manually from the
+database's connection string, and `SECRET_KEY` / `DEBUG=False` as env vars.
+
+### Before this is really "live"
+
+- Custom domain (`versushub.com` instead of `.onrender.com`) — needed for a
+  credible AdSense application anyway. Render supports this on any plan.
+- Swap the placeholder `SECRET_KEY` — `render.yaml` already auto-generates
+  a real one for you (`generateValue: true`), so this is handled if you use
+  the Blueprint.
+- Re-check the placeholders from the sections above before you consider it
+  really live: the 42 picsum photos (`PHOTO_CHECKLIST.md`), and the
+  Companies/Telecom/Construction/Clothing/Footballers/Universities figures
+  ("Data accuracy" section above).
 
 ## Ideas to grow traffic
 
@@ -164,4 +236,3 @@ Everything is managed from `/admin/`, no code needed:
 - Write an honest one-line "why it wins" for your most popular duels.
 - Submit `/sitemap.xml` to Google Search Console.
 - Let visitors vote and review — fresh content on autopilot.
-# versushub
